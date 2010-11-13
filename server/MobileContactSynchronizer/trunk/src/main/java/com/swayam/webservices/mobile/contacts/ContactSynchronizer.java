@@ -61,19 +61,25 @@ public class ContactSynchronizer {
 
         boolean success = false;
 
-        List<Contact> list = userContacts.get(key);
+        // List<Contact> list = userContacts.get(key);
+        //
+        // if (list != null) {
+        //
+        // list.add(new Contact(contactName, contactNumber));
+        //
+        // success = true;
+        //
+        // } else {
+        //
+        // System.err.println("Key not found: " + key);
+        //
+        // }
 
-        if (list != null) {
-
-            list.add(new Contact(contactName, contactNumber));
-
-            success = true;
-
-        } else {
-
-            System.err.println("Key not found: " + key);
-
-        }
+        System.out.println(key);
+        System.out.println(contactName);
+        System.out.println(contactNumber);
+        System.out
+                .println("*********************************************************************************");
 
         return Boolean.toString(success);
 
