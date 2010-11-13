@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsclientconfig serviceType="jsr-172" version="1.0">
+    <client>
+        <project>HelloWorld</project>
+        <class location="${src.dir}" type="com.swayam.j2me.contactz.xml.client.contactsynchronizer.ContactSynchronizer"/>
+        <property name="DataBinding" value="false"/>
+        <property name="cldc11" value="true"/>
+    </client>
+    <services>
+        <service file="ContactSynchronizer.wsdl" url="http://localhost:8090/MobileContactSynchronizer/ContactSynchronizer?wsdl"/>
+    </services>
+</wsclientconfig>

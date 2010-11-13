@@ -1,0 +1,8 @@
+MIDlet-1: SyncupMidlet, , com.swayam.j2me.contactz.ui.SyncupMidlet
+MIDlet-Jar-Size: 9164
+MIDlet-Jar-URL: Syncup.jar
+MIDlet-Name: Syncup
+MIDlet-Vendor: Swayam
+MIDlet-Version: 1.0.0
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
