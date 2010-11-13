@@ -15,8 +15,11 @@
 
 package com.swayam.j2me.contactz.ui;
 
+import java.io.OutputStream;
 import java.util.Enumeration;
 
+import javax.microedition.io.Connector;
+import javax.microedition.io.HttpConnection;
 import javax.microedition.lcdui.Alert;
 import javax.microedition.lcdui.Choice;
 import javax.microedition.lcdui.Command;
@@ -29,6 +32,7 @@ import javax.microedition.midlet.MIDletStateChangeException;
 import javax.microedition.pim.Contact;
 import javax.microedition.pim.ContactList;
 import javax.microedition.pim.PIM;
+import javax.microedition.pim.PIMItem;
 
 import com.swayam.j2me.contactz.xml.client.contactsynchronizer.ContactSynchronizerService;
 import com.swayam.j2me.contactz.xml.client.contactsynchronizer.ContactSynchronizerService_Stub;
@@ -39,13 +43,24 @@ import com.swayam.j2me.contactz.xml.client.contactsynchronizer.ContactSynchroniz
  */
 public class SyncupMidlet extends MIDlet implements CommandListener {
 
+    private static final String EXPORT_CONTACTS = "Export Contacts";
+    private static final String EXPORT_VCARDS = "Export VCards";
+
+    private static final String CONTACT_EXPORT_SERVICE_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/ContactSynchronizer";
+
+    private static final String VCARDS_EXPORT_SERVLET_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/VCardsExportProcessor";
+
     private List list;
+    private ContactSynchronizerService service;
 
     public SyncupMidlet() {
 
     }
 
     protected void startApp() throws MIDletStateChangeException {
+
+        service = new ContactSynchronizerService_Stub(
+                CONTACT_EXPORT_SERVICE_URL);
 
         switchDisplayable(null, getList());
 
@@ -75,7 +90,8 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
         if (list == null) {
 
             list = new List("Sync Contact List", Choice.IMPLICIT);
-            list.append("Export", null);
+            list.append(EXPORT_CONTACTS, null);
+            list.append(EXPORT_VCARDS, null);
             list.setCommandListener(this);
 
         }
@@ -100,93 +116,41 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
         String selectedString = list.getString(list.getSelectedIndex());
 
         if (selectedString != null) {
-            if (selectedString.equals("Export")) {
 
-                switchDisplayable(null, getList());
+            Runnable runnable = null;
 
-                Thread t = new Thread() {
+            if (selectedString.equals(EXPORT_CONTACTS)) {
+
+                runnable = new Runnable() {
 
                     public void run() {
 
-                        ContactSynchronizerService service = new ContactSynchronizerService_Stub(
-                                "http://home.paawak.com:8090/MobileContactSynchronizer/ContactSynchronizer");
-
-                        Alert alert;
-
-                        String str = "";
-
-                        try {
-
-                            PIM pim = PIM.getInstance();
-
-                            ContactList contactList = (ContactList) pim
-                                    .openPIMList(PIM.CONTACT_LIST,
-                                            PIM.READ_ONLY);
-
-                            Enumeration contacts = contactList.items();
-
-                            String key = service.startTransaction("p");
-
-                            // switchDisplayable(new Alert(key), getList());
-
-                            int recordCount = 1;
-
-                            while (contacts.hasMoreElements()) {
-
-                                Contact contact = (Contact) contacts
-                                        .nextElement();
-
-                                String name = contact.getString(
-                                        Contact.FORMATTED_NAME, 0);
-
-                                if (name == null) {
-
-                                    str = "Name null:" + recordCount;
-                                    break;
-
-                                }
-
-                                str = recordCount + " AA ";
-
-                                String number = getStringField(contact,
-                                        Contact.TEL);
-
-                                if (number == null) {
-
-                                    number = "";
-
-                                }
-
-                                str = recordCount + " BB ";
-
-                                // str = i + " " + name + "-" + number;
-
-                                recordCount++;
-
-                                service.export(key, name, number);
-
-                            }
-
-                            service.endTransaction(key);
-
-                            alert = new Alert(str);
-
-                        } catch (Exception e) {
-
-                            alert = new Alert(str + e.getMessage());
-
-                        }
-
-                        switchDisplayable(alert, getList());
+                        exportContacts();
 
                     }
 
                 };
 
-                t.start();
+            } else if (selectedString.equals(EXPORT_VCARDS)) {
+
+                runnable = new Runnable() {
+
+                    public void run() {
+
+                        exportVCards();
+
+                    }
+                };
 
             }
+
+            if (runnable != null) {
+                Thread t = new Thread(runnable);
+                t.start();
+            }
+
         }
+
     }
 
     private String getStringField(Contact contact, int attribute) {
@@ -204,6 +168,141 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
         }
 
         return value;
+
+    }
+
+    private void exportVCards() {
+
+        try {
+
+            PIM pim = PIM.getInstance();
+            String[] dataFormats = pim.supportedSerialFormats(PIM.CONTACT_LIST);
+
+            HttpConnection con = (HttpConnection) Connector.open(
+                    VCARDS_EXPORT_SERVLET_URL, Connector.WRITE);
+
+            con.setRequestMethod(HttpConnection.POST);
+            con.setRequestProperty("Content-Type", "java-internal");
+
+            OutputStream os = con.openOutputStream();
+
+            Enumeration items = pim
+                    .openPIMList(PIM.CONTACT_LIST, PIM.READ_ONLY).items();
+
+            while (items.hasMoreElements()) {
+
+                PIMItem item = (PIMItem) items.nextElement();
+
+                pim.toSerialFormat(item, os, "UTF-8", dataFormats[0]);
+
+            }
+
+            os.flush();
+            os.close();
+
+            con.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            switchDisplayable(new Alert(e.getMessage()), getList());
+
+        }
+
+    }
+
+    private void exportContacts() {
+
+        Alert alert;
+
+        // String str = "";
+
+        int recordCount = 1;
+
+        int listCount = 0;
+
+        try {
+
+            PIM pim = PIM.getInstance();
+
+            String[] allContactLists = PIM.getInstance().listPIMLists(
+                    PIM.CONTACT_LIST);
+
+            for (; listCount < allContactLists.length; listCount++) {
+
+                String contactListName = allContactLists[listCount];
+
+                ContactList contactList = (ContactList) pim.openPIMList(
+                        PIM.CONTACT_LIST, PIM.READ_ONLY, contactListName);
+
+                if (contactList.isSupportedField(Contact.FORMATTED_NAME)
+                        && contactList.isSupportedField(Contact.TEL)) {
+
+                    StringBuffer sb = new StringBuffer();
+
+                    Enumeration contacts = contactList.items();
+
+                    // String key = service.startTransaction("p");
+
+                    // switchDisplayable(new Alert(key), getList());
+
+                    recordCount = 1;
+                    while (contacts.hasMoreElements()) {
+
+                        Contact contact = (Contact) contacts.nextElement();
+
+                        String name = contact.getString(Contact.FORMATTED_NAME,
+                                0);
+
+                        if (name == null) {
+
+                            // str = " NULL Name ";
+                            // break;
+
+                            name = "-";
+
+                        }
+
+                        // str = " AA ";
+
+                        String number = getStringField(contact, Contact.TEL);
+
+                        if (number == null) {
+
+                            // str = " NULL Number ";
+                            // break;
+
+                            number = "-";
+
+                        }
+
+                        sb.append(name).append(':').append(number).append('\n');
+
+                        // str = " BB ";
+
+                        recordCount++;
+
+                    }
+
+                    service.export(contactListName,
+                            Integer.toString(listCount), sb.toString());
+
+                }
+
+            }
+
+            // service.endTransaction(key);
+
+            alert = new Alert(listCount + ", " + recordCount + " : " /*+ str*/);
+
+        } catch (Exception e) {
+
+            alert = new Alert(recordCount + " : " /*+ str*/
+                    + "#" + e.getMessage());
+
+        }
+
+        switchDisplayable(alert, getList());
 
     }
 
