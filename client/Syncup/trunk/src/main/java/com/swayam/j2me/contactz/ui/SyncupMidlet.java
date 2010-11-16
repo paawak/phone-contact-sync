@@ -15,11 +15,19 @@
 
 package com.swayam.j2me.contactz.ui;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Enumeration;
 
+import javax.bluetooth.BluetoothStateException;
+import javax.bluetooth.DiscoveryAgent;
+import javax.bluetooth.LocalDevice;
+import javax.bluetooth.ServiceRecord;
+import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
 import javax.microedition.io.HttpConnection;
+import javax.microedition.io.StreamConnection;
 import javax.microedition.lcdui.Alert;
 import javax.microedition.lcdui.Choice;
 import javax.microedition.lcdui.Command;
@@ -49,6 +57,9 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
     private static final String CONTACT_EXPORT_SERVICE_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/ContactSynchronizer";
 
     private static final String VCARDS_EXPORT_SERVLET_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/VCardsExportProcessor";
+
+    private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
+            "1115E2609F3CB487100285D", false);
 
     private List list;
     private ContactSynchronizerService service;
@@ -125,11 +136,46 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
                     public void run() {
 
-                        exportContacts();
+                        try {
+                            LocalDevice local = LocalDevice.getLocalDevice();
+                            local.setDiscoverable(DiscoveryAgent.GIAC);
+                            DiscoveryAgent agent = local.getDiscoveryAgent();
+                            String connectURL = agent.selectService(
+                                    CONTACT_SYNC_SERVER_UUID,
+                                    ServiceRecord.NOAUTHENTICATE_NOENCRYPT,
+                                    false);
+                            StreamConnection streamConnection = (StreamConnection) Connector
+                                    .open(connectURL);
+
+                            DataOutputStream dos = streamConnection
+                                    .openDataOutputStream();
+
+                            dos.writeInt(565);
+
+                            dos.flush();
+
+                            dos.close();
+
+                        } catch (BluetoothStateException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
 
                     }
-
                 };
+
+                // runnable = new Runnable() {
+                //
+                // public void run() {
+                //
+                // exportContacts();
+                //
+                // }
+                //
+                // };
 
             } else if (selectedString.equals(EXPORT_VCARDS)) {
 
