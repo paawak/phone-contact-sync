@@ -16,7 +16,6 @@
 package com.swayam.mobile.sync.client.ui;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 import javax.bluetooth.BluetoothStateException;
 import javax.bluetooth.DiscoveryAgent;
@@ -24,7 +23,6 @@ import javax.bluetooth.LocalDevice;
 import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
-import javax.microedition.io.HttpConnection;
 import javax.microedition.io.StreamConnection;
 import javax.microedition.lcdui.Alert;
 import javax.microedition.lcdui.Choice;
@@ -47,6 +45,9 @@ import com.swayam.mobile.sync.client.util.PhoneContactManager;
  */
 public class SyncupMidlet extends MIDlet implements CommandListener {
 
+    private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
+            "1115E2609F3CB487100285D", false);
+
     private static final String EXPORT_CONTACTS = "Export Contacts";
     private static final String EXPORT_VCARDS = "Export VCards";
 
@@ -56,10 +57,7 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
     // private static final String CONTACT_EXPORT_SERVICE_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/ContactSynchronizer";
 
-    private static final String VCARDS_EXPORT_SERVLET_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/VCardsExportProcessor";
-
-    private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
-            "1115E2609F3CB487100285D", false);
+    // private static final String VCARDS_EXPORT_SERVLET_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/VCardsExportProcessor";
 
     private List list;
 
@@ -142,23 +140,9 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
                     public void run() {
 
                         try {
-                            LocalDevice local = LocalDevice.getLocalDevice();
-                            local.setDiscoverable(DiscoveryAgent.GIAC);
-                            DiscoveryAgent agent = local.getDiscoveryAgent();
-                            String connectURL = agent.selectService(
-                                    CONTACT_SYNC_SERVER_UUID,
-                                    ServiceRecord.NOAUTHENTICATE_NOENCRYPT,
-                                    false);
-                            StreamConnection streamConnection = (StreamConnection) Connector
-                                    .open(connectURL);
 
-                            new SyncWriter()
-                                    .write(streamConnection.openOutputStream(),
-                                            contactManager.getContactDetails()/*
-                                                                              + "\n&&&&&&&&&&&&&&&&&&&&&\n"
-                                                                              + log.getLogs()*/);
-
-                            streamConnection.close();
+                            sendToBluetoothServer(contactManager
+                                    .getContactDetails());
 
                         } catch (BluetoothStateException e) {
                             handleException(e);
@@ -178,7 +162,9 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
                     public void run() {
 
                         try {
-                            exportVCards();
+
+                            sendToBluetoothServer(contactManager.getVCards());
+
                         } catch (IOException e) {
                             handleException(e);
                         } catch (PIMException e) {
@@ -199,24 +185,40 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
     }
 
-    private void exportVCards() throws IOException, PIMException {
+    private void sendToBluetoothServer(String data) throws IOException {
 
-        HttpConnection con = (HttpConnection) Connector.open(
-                VCARDS_EXPORT_SERVLET_URL, Connector.WRITE);
+        LocalDevice local = LocalDevice.getLocalDevice();
+        local.setDiscoverable(DiscoveryAgent.GIAC);
+        DiscoveryAgent agent = local.getDiscoveryAgent();
+        String connectURL = agent.selectService(CONTACT_SYNC_SERVER_UUID,
+                ServiceRecord.NOAUTHENTICATE_NOENCRYPT, false);
+        StreamConnection streamConnection = (StreamConnection) Connector
+                .open(connectURL);
 
-        con.setRequestMethod(HttpConnection.POST);
-        con.setRequestProperty("Content-Type", "java-internal");
+        new SyncWriter().write(streamConnection.openOutputStream(), data);
 
-        OutputStream os = con.openOutputStream();
-
-        os.write(contactManager.getVCardsAsBytes());
-
-        os.flush();
-        os.close();
-
-        con.close();
+        streamConnection.close();
 
     }
+
+    // private void exportVCards() throws IOException, PIMException {
+    //
+    // HttpConnection con = (HttpConnection) Connector.open(
+    // VCARDS_EXPORT_SERVLET_URL, Connector.WRITE);
+    //
+    // con.setRequestMethod(HttpConnection.POST);
+    // con.setRequestProperty("Content-Type", "java-internal");
+    //
+    // OutputStream os = con.openOutputStream();
+    //
+    // os.write(contactManager.getVCardsAsBytes());
+    //
+    // os.flush();
+    // os.close();
+    //
+    // con.close();
+    //
+    // }
 
     private void handleException(Exception e) {
 
