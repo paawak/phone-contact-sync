@@ -34,6 +34,7 @@ import javax.microedition.lcdui.CommandListener;
 import javax.microedition.lcdui.Display;
 import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.List;
+import javax.microedition.lcdui.TextBox;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.midlet.MIDletStateChangeException;
 import javax.microedition.pim.Contact;
@@ -58,7 +59,7 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
     private static final String VCARDS_EXPORT_SERVLET_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/VCardsExportProcessor";
 
     private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
-            "1115E2609F3CB487100285D", false);
+            "F0E0D0C0B0A000908070605040302010", false);
 
     private List list;
 
@@ -154,14 +155,11 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
                             streamConnection.close();
 
                         } catch (BluetoothStateException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
+                            handleException(e);
                         } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
+                            handleException(e);
                         } catch (PIMException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
+                            handleException(e);
                         }
 
                     }
@@ -173,7 +171,13 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
                     public void run() {
 
-                        exportVCards();
+                        try {
+                            exportVCards();
+                        } catch (IOException e) {
+                            handleException(e);
+                        } catch (PIMException e) {
+                            handleException(e);
+                        }
 
                     }
                 };
@@ -207,42 +211,34 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
     }
 
-    private void exportVCards() {
+    private void exportVCards() throws IOException, PIMException {
 
-        try {
+        PIM pim = PIM.getInstance();
+        String[] dataFormats = pim.supportedSerialFormats(PIM.CONTACT_LIST);
 
-            PIM pim = PIM.getInstance();
-            String[] dataFormats = pim.supportedSerialFormats(PIM.CONTACT_LIST);
+        HttpConnection con = (HttpConnection) Connector.open(
+                VCARDS_EXPORT_SERVLET_URL, Connector.WRITE);
 
-            HttpConnection con = (HttpConnection) Connector.open(
-                    VCARDS_EXPORT_SERVLET_URL, Connector.WRITE);
+        con.setRequestMethod(HttpConnection.POST);
+        con.setRequestProperty("Content-Type", "java-internal");
 
-            con.setRequestMethod(HttpConnection.POST);
-            con.setRequestProperty("Content-Type", "java-internal");
+        OutputStream os = con.openOutputStream();
 
-            OutputStream os = con.openOutputStream();
+        Enumeration items = pim.openPIMList(PIM.CONTACT_LIST, PIM.READ_ONLY)
+                .items();
 
-            Enumeration items = pim
-                    .openPIMList(PIM.CONTACT_LIST, PIM.READ_ONLY).items();
+        while (items.hasMoreElements()) {
 
-            while (items.hasMoreElements()) {
+            PIMItem item = (PIMItem) items.nextElement();
 
-                PIMItem item = (PIMItem) items.nextElement();
-
-                pim.toSerialFormat(item, os, "UTF-8", dataFormats[0]);
-
-            }
-
-            os.flush();
-            os.close();
-
-            con.close();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
+            pim.toSerialFormat(item, os, "UTF-8", dataFormats[0]);
 
         }
+
+        os.flush();
+        os.close();
+
+        con.close();
 
     }
 
@@ -296,6 +292,15 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
         }
 
         return sb.toString();
+
+    }
+
+    private void handleException(Exception e) {
+
+        TextBox textBox = new TextBox("Exception Occured", e.getMessage(), 500,
+                0);
+
+        switchDisplayable(null, textBox);
 
     }
 

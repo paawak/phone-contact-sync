@@ -31,7 +31,6 @@ public class SyncWriter {
         ds.writeUTF(data);
         ds.flush();
         ds.close();
-        os.close();
 
     }
 
