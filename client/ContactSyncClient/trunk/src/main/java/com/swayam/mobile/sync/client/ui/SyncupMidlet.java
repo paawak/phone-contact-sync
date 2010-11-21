@@ -17,7 +17,6 @@ package com.swayam.mobile.sync.client.ui;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Enumeration;
 
 import javax.bluetooth.BluetoothStateException;
 import javax.bluetooth.DiscoveryAgent;
@@ -37,9 +36,7 @@ import javax.microedition.lcdui.List;
 import javax.microedition.lcdui.TextBox;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.midlet.MIDletStateChangeException;
-import javax.microedition.pim.PIM;
 import javax.microedition.pim.PIMException;
-import javax.microedition.pim.PIMItem;
 
 import com.swayam.mobile.sync.client.io.SyncWriter;
 import com.swayam.mobile.sync.client.util.PhoneContactManager;
@@ -204,9 +201,6 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
     private void exportVCards() throws IOException, PIMException {
 
-        PIM pim = PIM.getInstance();
-        String[] dataFormats = pim.supportedSerialFormats(PIM.CONTACT_LIST);
-
         HttpConnection con = (HttpConnection) Connector.open(
                 VCARDS_EXPORT_SERVLET_URL, Connector.WRITE);
 
@@ -215,16 +209,7 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
 
         OutputStream os = con.openOutputStream();
 
-        Enumeration items = pim.openPIMList(PIM.CONTACT_LIST, PIM.READ_ONLY)
-                .items();
-
-        while (items.hasMoreElements()) {
-
-            PIMItem item = (PIMItem) items.nextElement();
-
-            pim.toSerialFormat(item, os, "UTF-8", dataFormats[0]);
-
-        }
+        os.write(contactManager.getVCardsAsBytes());
 
         os.flush();
         os.close();

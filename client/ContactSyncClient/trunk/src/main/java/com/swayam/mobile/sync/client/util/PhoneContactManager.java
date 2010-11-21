@@ -15,12 +15,15 @@
 
 package com.swayam.mobile.sync.client.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Enumeration;
 
 import javax.microedition.pim.Contact;
 import javax.microedition.pim.ContactList;
 import javax.microedition.pim.PIM;
 import javax.microedition.pim.PIMException;
+import javax.microedition.pim.PIMItem;
 
 /**
  * 
@@ -80,6 +83,37 @@ public class PhoneContactManager {
         }
 
         return sb.toString();
+
+    }
+
+    public String getVCards() throws PIMException, IOException {
+
+        return new String(getVCardsAsBytes());
+
+    }
+
+    public byte[] getVCardsAsBytes() throws PIMException, IOException {
+
+        PIM pim = PIM.getInstance();
+        String[] dataFormats = pim.supportedSerialFormats(PIM.CONTACT_LIST);
+
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+        Enumeration items = pim.openPIMList(PIM.CONTACT_LIST, PIM.READ_ONLY)
+                .items();
+
+        while (items.hasMoreElements()) {
+
+            PIMItem item = (PIMItem) items.nextElement();
+
+            pim.toSerialFormat(item, os, "UTF-8", dataFormats[0]);
+
+        }
+
+        os.flush();
+        os.close();
+
+        return os.toByteArray();
 
     }
 
