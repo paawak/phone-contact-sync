@@ -18,9 +18,6 @@ package com.swayam.mobile.sync.server.bluetooth;
 import java.io.IOException;
 
 import javax.bluetooth.BluetoothStateException;
-import javax.bluetooth.DataElement;
-import javax.bluetooth.LocalDevice;
-import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
@@ -35,34 +32,35 @@ import com.intel.bluetooth.BlueCoveConfigProperties;
 public class ContactSyncServer implements Runnable {
 
     private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
-            "F0E0D0C0B0A000908070605040302010", false);
+            "1115E2609F3CB487100285D", false);
 
     @Override
     public void run() {
 
         try {
 
-            LocalDevice localDevice = LocalDevice.getLocalDevice();
+            // LocalDevice localDevice = LocalDevice.getLocalDevice();
 
+            // BlueCove version 2.1.0 on bluez (Linux), gives an exception if the following line is uncommented
             // localDevice.setDiscoverable(DiscoveryAgent.GIAC);
 
             String url = "btspp://localhost:"
                     + CONTACT_SYNC_SERVER_UUID.toString()
                     + ";name=ContactSyncServer;authorize=false";
 
-            System.out.println("url=" + url);
+            System.out.println("Bluetooth Server URL=" + url);
 
             StreamConnectionNotifier notifier = (StreamConnectionNotifier) Connector
                     .open(url.toString());
 
-            ServiceRecord record = localDevice.getRecord(notifier);
-            record.setAttributeValue(3, new DataElement(DataElement.DATSEQ));
-            localDevice.updateRecord(record);
+            // ServiceRecord record = localDevice.getRecord(notifier);
+            // record.setAttributeValue(3, new DataElement(DataElement.DATSEQ));
+            // localDevice.updateRecord(record);
 
             RequestProcessor processor = new RequestProcessor();
 
             while (true) {
-                System.out.println("waiting for client..");
+                System.out.println("waiting for client...");
 
                 try {
 
