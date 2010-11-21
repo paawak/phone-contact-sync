@@ -28,6 +28,7 @@ public class SyncIO {
     public void read(InputStream is) throws IOException {
 
         DataInputStream di = new DataInputStream(is);
+
         String data = di.readUTF();
 
         System.out
