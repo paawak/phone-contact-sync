@@ -1,0 +1,7 @@
+MIDlet-Version: 1.0.0
+MIDlet-Vendor: Swayam
+MIDlet-Jar-URL: Syncup.jar
+MicroEdition-Configuration: CLDC-1.1
+MIDlet-1: SyncupMidlet, ,com.swayam.mobile.sync.client.ui.SyncupMidlet
+MicroEdition-Profile: MIDP-2.0
+MIDlet-Name: ContactsSyncup
