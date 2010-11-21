@@ -59,7 +59,7 @@ public class SyncupMidlet extends MIDlet implements CommandListener {
     private static final String VCARDS_EXPORT_SERVLET_URL = "http://home.paawak.com:8090/MobileContactSynchronizer/VCardsExportProcessor";
 
     private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
-            "F0E0D0C0B0A000908070605040302010", false);
+            "1115E2609F3CB487100285D", false);
 
     private List list;
 
