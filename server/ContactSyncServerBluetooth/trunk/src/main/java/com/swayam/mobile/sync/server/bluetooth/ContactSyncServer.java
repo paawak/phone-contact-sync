@@ -18,6 +18,9 @@ package com.swayam.mobile.sync.server.bluetooth;
 import java.io.IOException;
 
 import javax.bluetooth.BluetoothStateException;
+import javax.bluetooth.DataElement;
+import javax.bluetooth.LocalDevice;
+import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
@@ -32,14 +35,14 @@ import com.intel.bluetooth.BlueCoveConfigProperties;
 public class ContactSyncServer implements Runnable {
 
     private static final UUID CONTACT_SYNC_SERVER_UUID = new UUID(
-            "1115E2609F3CB487100285D", false);
+            "F0E0D0C0B0A000908070605040302010", false);
 
     @Override
     public void run() {
 
         try {
 
-            // LocalDevice localDevice = LocalDevice.getLocalDevice();
+            LocalDevice localDevice = LocalDevice.getLocalDevice();
 
             // localDevice.setDiscoverable(DiscoveryAgent.GIAC);
 
@@ -52,19 +55,20 @@ public class ContactSyncServer implements Runnable {
             StreamConnectionNotifier notifier = (StreamConnectionNotifier) Connector
                     .open(url.toString());
 
-            // ServiceRecord record = localDevice.getRecord(notifier);
+            ServiceRecord record = localDevice.getRecord(notifier);
+            record.setAttributeValue(3, new DataElement(DataElement.DATSEQ));
+            localDevice.updateRecord(record);
+
+            RequestProcessor processor = new RequestProcessor();
 
             while (true) {
                 System.out.println("waiting for client..");
 
                 try {
+
                     StreamConnection conn = notifier.acceptAndOpen();
 
-                    // create a new RequestProcessor
-                    System.out.println("ADDED CLIENT");
-                    Runnable runnable = new RequestProcessor(conn);
-                    Thread processor = new Thread(runnable);
-                    processor.start();
+                    processor.addRequest(conn);
 
                 } catch (IOException e) {
                     // wrong client or interrupted - continue anyway

@@ -16,6 +16,9 @@
 package com.swayam.mobile.sync.server.bluetooth;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.microedition.io.StreamConnection;
 
@@ -27,26 +30,75 @@ import com.swayam.mobile.sync.server.common.io.SyncIO;
  */
 class RequestProcessor implements Runnable {
 
-    private final StreamConnection streamConnection;
+    private final List<StreamConnection> queue;
 
-    RequestProcessor(StreamConnection streamConnection) {
-        this.streamConnection = streamConnection;
+    RequestProcessor() {
+
+        queue = Collections.synchronizedList(new ArrayList<StreamConnection>());
+
+        Thread t = new Thread(this);
+        t.setDaemon(true);
+        t.start();
+
     }
 
     @Override
     public void run() {
 
+        while (true) {
+
+            synchronized (this) {
+
+                if (queue.size() == 0) {
+
+                    try {
+
+                        wait();
+
+                    } catch (InterruptedException e) {
+
+                        e.printStackTrace();
+                        return;
+
+                    }
+                }
+
+                synchronized (this) {
+
+                    StreamConnection streamConnection = queue.get(0);
+
+                    queue.remove(0);
+
+                    try {
+                        processRequest(streamConnection);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+    public void addRequest(StreamConnection streamConnection) {
+
+        synchronized (this) {
+            queue.add(streamConnection);
+            notify();
+        }
+
+    }
+
+    private void processRequest(StreamConnection streamConnection)
+            throws IOException {
+
         SyncIO io = new SyncIO();
 
-        try {
-
-            io.read(streamConnection.openInputStream());
-            streamConnection.close();
-
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        io.read(streamConnection.openInputStream());
+        streamConnection.close();
 
     }
 
