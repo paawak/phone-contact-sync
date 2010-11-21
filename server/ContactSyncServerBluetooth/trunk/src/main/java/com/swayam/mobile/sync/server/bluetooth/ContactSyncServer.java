@@ -15,12 +15,9 @@
 
 package com.swayam.mobile.sync.server.bluetooth;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 
 import javax.bluetooth.BluetoothStateException;
-import javax.bluetooth.LocalDevice;
-import javax.bluetooth.ServiceRecord;
 import javax.bluetooth.UUID;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
@@ -42,7 +39,7 @@ public class ContactSyncServer implements Runnable {
 
         try {
 
-            LocalDevice localDevice = LocalDevice.getLocalDevice();
+            // LocalDevice localDevice = LocalDevice.getLocalDevice();
 
             // localDevice.setDiscoverable(DiscoveryAgent.GIAC);
 
@@ -55,7 +52,7 @@ public class ContactSyncServer implements Runnable {
             StreamConnectionNotifier notifier = (StreamConnectionNotifier) Connector
                     .open(url.toString());
 
-            ServiceRecord record = localDevice.getRecord(notifier);
+            // ServiceRecord record = localDevice.getRecord(notifier);
 
             while (true) {
                 System.out.println("waiting for client..");
@@ -63,19 +60,18 @@ public class ContactSyncServer implements Runnable {
                 try {
                     StreamConnection conn = notifier.acceptAndOpen();
 
-                    DataInputStream dis = conn.openDataInputStream();
-                    int i = dis.readInt();
-
-                    System.out.println(i);
-
-                    dis.close();
+                    // create a new RequestProcessor
+                    System.out.println("ADDED CLIENT");
+                    Runnable runnable = new RequestProcessor(conn);
+                    Thread processor = new Thread(runnable);
+                    processor.start();
 
                 } catch (IOException e) {
                     // wrong client or interrupted - continue anyway
                     e.printStackTrace();
                     continue;
                 }
-                System.out.println("ADDED CLIENT");
+
             }
 
         } catch (BluetoothStateException e) {
@@ -91,12 +87,6 @@ public class ContactSyncServer implements Runnable {
         // -Dbluecove.native.path=/bhandar/installables/java/libs/bluetooth/bluecove
         System.setProperty(BlueCoveConfigProperties.PROPERTY_NATIVE_PATH,
                 "/usr/lib");
-
-        System.out
-                .println(System
-                        .getProperty(BlueCoveConfigProperties.PROPERTY_NATIVE_RESOURCE));
-
-        System.out.println(System.getProperty("java.library.path"));
 
         Thread t = new Thread(new ContactSyncServer());
         t.start();

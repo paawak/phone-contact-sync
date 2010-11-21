@@ -15,7 +15,11 @@
 
 package com.swayam.mobile.sync.server.bluetooth;
 
+import java.io.IOException;
+
 import javax.microedition.io.StreamConnection;
+
+import com.swayam.mobile.sync.server.common.io.SyncIO;
 
 /**
  * 
@@ -31,7 +35,18 @@ class RequestProcessor implements Runnable {
 
     @Override
     public void run() {
-        // TODO Auto-generated method stub
+
+        SyncIO io = new SyncIO();
+
+        try {
+
+            io.read(streamConnection.openInputStream());
+            streamConnection.close();
+
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
     }
 
