@@ -18,6 +18,7 @@ package com.swayam.mobile.sync.client.util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.Vector;
 
 import javax.microedition.pim.Contact;
 import javax.microedition.pim.ContactList;
@@ -114,6 +115,50 @@ public class PhoneContactManager {
         os.close();
 
         return os.toByteArray();
+
+    }
+
+    public Vector getContactNames() throws PIMException {
+
+        Vector vector = new Vector();
+
+        PIM pim = PIM.getInstance();
+
+        String[] allContactLists = PIM.getInstance().listPIMLists(
+                PIM.CONTACT_LIST);
+
+        for (int listCount = 0; listCount < allContactLists.length; listCount++) {
+
+            String contactListName = allContactLists[listCount];
+
+            ContactList contactList = (ContactList) pim.openPIMList(
+                    PIM.CONTACT_LIST, PIM.READ_ONLY, contactListName);
+
+            if (contactList.isSupportedField(Contact.FORMATTED_NAME)) {
+
+                Enumeration contacts = contactList.items();
+
+                while (contacts.hasMoreElements()) {
+
+                    Contact contact = (Contact) contacts.nextElement();
+
+                    String name = contact.getString(Contact.FORMATTED_NAME, 0);
+
+                    if (name == null || vector.contains(name)) {
+
+                        continue;
+
+                    }
+
+                    vector.addElement(name);
+
+                }
+
+            }
+
+        }
+
+        return vector;
 
     }
 
